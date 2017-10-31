@@ -56,7 +56,6 @@ void skip_lines(char *buff, int buf_size, FILE *fp, int n){
 	}
 }
 
-// Technical detail, see the assignment PDF for more details.
 int parse(char *buff){
 
 	char *type = strtok(buff, " "); // Parse / throw away the preceeding I / L / S indicator
@@ -76,33 +75,37 @@ void initialize_student_code(){
 }
 
 unsigned int select_frame()
-{  // Selects a frame to use (implements sme page replacement algorithm)
+{  // Selects a frame to use (implements page replacement algorithm)
   int pgArray[4] = {-1, -1, -1, -1};
   int safeArray[4] = {0,0,0,0};
   int i;
   int pgTableEntries = 0;
   for (i=0;i<8;i++)
-    {
+    {//This loop selects and stores the current pages in frames
       struct page_table_entry *e = get_page_table_entry(i);
       if (e->present == 1)
-	{
-	  pgArray[pgTableEntries] = i; // Make sure we can cross ref w/ future page #
+	{//So we can cross reference with future page #s
+	  pgArray[pgTableEntries] = i;
 	  pgTableEntries++;
 	}
     }
+
   if (pgTableEntries<4)
-    {
+    {//if there are less than 4 pages in frames, return unused frame
       return pgTableEntries;
     }
+
   FILE *fp = fopen("./instructions.txt", "r"); // FILE *fp so I can use fgets
   int buf_size = 80;
   char *buff = malloc(sizeof(char) * buf_size);
   skip_lines(buff, buf_size, fp, 5 + get_c());
+  //jumps to instruction being executed next
+
   int addr = parse(buff);
-  unsigned long pageNum = pgNum(addr);
+  unsigned long pageNum = pgNum(addr); //gets the page # for that address
   int safe = 0;
-  while (safe < 3) // Took out a < 100000
-    {
+  while (safe < 3)
+    {//Three frames will be marked "safe" and the 4th evicted
       buff = fgets(buff, buf_size, fp);
       addr = parse(buff);
       pageNum = pgNum(addr);
@@ -110,7 +113,7 @@ unsigned int select_frame()
   	{
   	  if ((int)pageNum == pgArray[i]) // Same pg #
   	    {
-  	      if (safeArray[i] == 0) // Previous not marked safe.
+  	      if (safeArray[i] == 0) // Previously not marked safe.
   		{
   		  safeArray[i] = 1;
   		  safe++;
@@ -120,11 +123,11 @@ unsigned int select_frame()
     }
   fclose(fp);
   for (i=0;i<4;i++)
-    {
+    {//Finds and returns the least-soon-needed frame, so it can be evicted
       if (safeArray[i] == 0)
-  	{
-  	  struct page_table_entry *e = get_page_table_entry(pgArray[i]);
-	  return e->frame_number;
-  	}
+  		{
+  	  	struct page_table_entry *e = get_page_table_entry(pgArray[i]);
+	  		return e->frame_number;
+  		}
     }
 }
